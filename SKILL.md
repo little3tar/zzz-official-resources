@@ -1,8 +1,8 @@
 ---
 name: zzz-official-resources
-description: Download, update-check, repair, and maintain official Zenless Zone Zero resources from miHoYo Wiki, including calendar wallpapers, wallpaper collection pages, and agent cinema/mindscape images. Use when users ask to download ZZZ official images/videos, check official resource updates, repair missing local files, or export manifests.
+description: Download, update-check, repair, and export official Zenless Zone Zero resources from miHoYo Wiki, including calendar wallpapers, wallpaper collection pages, and agent cinema/mindscape images. Use when users ask to download ZZZ official images/videos, check official resource updates, repair missing local files, or export manifests.
 metadata:
-  short-description: Download and maintain ZZZ official resources
+  short-description: Download and check ZZZ official resources
 ---
 
 # ZZZ Official Resources
@@ -10,8 +10,8 @@ metadata:
 Use this skill for official Zenless Zone Zero resources from miHoYo Wiki:
 
 - Calendar wallpapers
-- Wallpaper collection pages under `壁纸收录`
-- Agent `意象影画` images under `代理人`
+- Wallpaper collection pages under `壁纸合集`
+- Agent `意象影画` images
 
 ## Required Interaction
 
@@ -58,9 +58,9 @@ C:\Users\admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\p
 
 ## Naming
 
-- Calendar wallpapers: `官方月历壁纸/<year>/YYYYMMp.ext` for PC and `YYYYMMm.ext` for mobile.
-- Wallpaper collections: `官方壁纸合集/<collection>/<web group>/...`; single-group collections are flattened.
-- Agent cinema images: `官方意象影画/<agent>/影画展示1.ext`, `影画展示2.ext`, `影画展示3.ext`.
+- Calendar wallpapers: `壁纸合集/月历壁纸合集/<year>/YYYYMMp.ext` for PC and `YYYYMMm.ext` for mobile.
+- Wallpaper collections: `壁纸合集/<collection>/<web group>/...`; single-group collections are flattened.
+- Agent cinema images: `意象影画/<agent>/影画展示1.ext`, `影画展示2.ext`, `影画展示3.ext`.
 
 ## Safety Notes
 
@@ -71,11 +71,11 @@ Writing outside the workspace or into OneDrive may require escalation. Ask for c
 - Do not parse the visible HTML page for resource data. The page is mostly a Nuxt shell; use the `entry_page` API for content.
 - Do not use `entry_page_v2` as the default detail API. It may return HTTP 403 in this environment.
 - Always send `X-Rpc-Wiki_app: zzz` when requesting `hoyowiki/zzz/wapi/entry_page`.
-- For channel pages, `home/map` may only include the homepage preview list. Use `home/content/list?channel_id=<id>&page_num=1&page_size=100` for complete channel item lists, especially `???` channel `43`.
+- For channel pages, `home/map` may only include the homepage preview list. Use `home/content/list?channel_id=<id>&page_num=1&page_size=100` for complete channel item lists, especially the agent channel `43`.
 - For wallpaper collection grouping, do not rely on `module.name`; it is often empty. Use `template_layout.tab[].module_group[].name` and map those group modules back to `page.modules[].id`.
 - Static images usually come from `map_desc` component data: `data.list[].image` with `data.list[].tab_name`.
 - Dynamic wallpaper MP4 files are embedded in rich text as `data-video-url` or `<video src=...>`, not in `map_desc.image`.
-- Agent `????` files are the three image tabs named `????1`, `????2`, and `????3`. Preview/unreleased agents may have no `????`; treat that as normal, not as a failure.
+- Agent cinema files are the three image tabs named `影画展示1`, `影画展示2`, and `影画展示3`. Preview/unreleased agents may have no cinema images; treat that as normal, not as a failure.
 - Calendar wallpaper modules are arranged in PC/mobile pairs. Infer year from image URLs and month from tab names instead of hard-coding a fixed year range.
 - Manifests and check reports must stay in `state/` by default. Only run `export-manifest` after the user explicitly asks to inspect or receive CSV files.
 - Never delete user files automatically. If remote resources disappear, local files are extra, or old empty folders remain, report them and ask before deletion.

@@ -17,6 +17,38 @@
 - `cinema`：153 条
 - 合计：1900 条
 
+## 已下载资源共享
+
+2026-04-29 运行本 skill 拉取到的完整资源，已分别上传到 Google Drive 和 OneDrive，并开启共享。需要直接获取已下载资源时，可以使用下面的链接：
+
+- Google Drive：https://drive.google.com/drive/folders/1dhHrK1h-rSo_LSU9s5YW5IIJf0dC23Zd?usp=sharing
+- OneDrive：https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsMa644?e=EgABsQ
+
+这些共享文件是某次运行结果的快照。若需要确认是否有新增、移除或改名的远端资源，仍建议使用 `check-remote` 重新检查。
+
+## 下载目录结构
+
+执行 `download` 或 `repair` 时，脚本会把资源写入用户指定的 `--dest` 目录，并按当前共享目录结构组织文件：
+
+```text
+<dest>/
+  壁纸合集/
+    月历壁纸合集/
+      <year>/
+        YYYYMMp.ext
+        YYYYMMm.ext
+    <collection>/
+      <web group>/
+        ...
+  意象影画/
+    <agent>/
+      影画展示1.ext
+      影画展示2.ext
+      影画展示3.ext
+```
+
+日历壁纸已归入 `壁纸合集/月历壁纸合集/`。其中 `p` 表示 PC 版，`m` 表示移动端版。壁纸合集会尽量保留绳网情报站页面中的合集和分组结构；少数单分组合集会被扁平化到合集目录下。代理人意象影画按代理人名称分目录保存到 `意象影画/`。
+
 ## 命令
 
 建议使用 Codex Desktop 捆绑的 Python 运行：

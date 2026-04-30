@@ -28,6 +28,9 @@ MANIFESTS = {
     "cinema": STATE_DIR / "cinema_manifest.csv",
 }
 REPORT = STATE_DIR / "last_check_report.csv"
+WALLPAPER_ROOT = "壁纸合集"
+CALENDAR_COLLECTION = "月历壁纸合集"
+CINEMA_ROOT = "意象影画"
 
 WALLPAPER_COLLECTIONS = [
     ("EP短片壁纸合集", 1864),
@@ -175,7 +178,7 @@ def build_calendar():
                 records.append(
                     {
                         "resource_type": "calendar",
-                        "category": "官方月历壁纸",
+                        "category": CALENDAR_COLLECTION,
                         "group": str(year),
                         "entry_id": "684",
                         "module_id": "",
@@ -183,7 +186,7 @@ def build_calendar():
                         "url": url,
                         "ext": ext,
                         "base": base,
-                        "relative_dir": path_join("官方月历壁纸", str(year)),
+                        "relative_dir": path_join(WALLPAPER_ROOT, CALENDAR_COLLECTION, str(year)),
                     }
                 )
     return add_targets(records)
@@ -198,7 +201,7 @@ def build_wallpapers():
             module_id = str(module.get("id") or "")
             group = group_names.get(module_id, "") or page.get("name") or category
             use_group_dir = category not in FLATTEN_WALLPAPER_CATEGORIES
-            relative_dir = path_join("官方壁纸合集", category, sanitize(group, f"{entry_id}-{module_id}") if use_group_dir else "")
+            relative_dir = path_join(WALLPAPER_ROOT, category, sanitize(group, f"{entry_id}-{module_id}") if use_group_dir else "")
             img_seq = 0
             vid_seq = 0
             for comp in module.get("components", []):
@@ -206,8 +209,6 @@ def build_wallpapers():
                     img_seq += 1
                     name = str(item.get("tab_name") or "").strip()
                     base = sanitize(name, "壁纸")
-                    if re.fullmatch(r"\d+", base):
-                        base = f"{entry_id}-{module_id}-{img_seq:03d}-{base}" if use_group_dir else base
                     records.append(
                         {
                             "resource_type": "wallpapers",
@@ -289,7 +290,7 @@ def build_cinema():
                         records.append(
                             {
                                 "resource_type": "cinema",
-                                "category": "官方意象影画",
+                                "category": CINEMA_ROOT,
                                 "group": role,
                                 "entry_id": str(entry["entry_id"]),
                                 "module_id": module_id,
@@ -297,7 +298,7 @@ def build_cinema():
                                 "url": item["image"],
                                 "ext": ext_from_url(item["image"], ".png"),
                                 "base": name,
-                                "relative_dir": path_join("官方意象影画", sanitize(role, str(entry["entry_id"]))),
+                                "relative_dir": path_join(CINEMA_ROOT, sanitize(role, str(entry["entry_id"]))),
                             }
                         )
                     break
@@ -486,7 +487,7 @@ def cmd_export(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Download and maintain official ZZZ Wiki resources.")
+    parser = argparse.ArgumentParser(description="Download and check official ZZZ Wiki resources.")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list-resources")
     for name in ("download", "repair", "check-local"):
