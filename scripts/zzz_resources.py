@@ -148,45 +148,40 @@ def stable_key(r):
 
 def build_calendar():
     page = fetch_entry(684)
-    groups = []
+    group_names = module_group_names(page)
+    records = []
     for module in page.get("modules", []):
+        module_id = str(module.get("id") or "")
+        group_name = group_names.get(module_id, "")
+        year_match = re.search(r"(\d{4})", group_name)
+        if not year_match or ("PC" not in group_name and "手机" not in group_name):
+            continue
+        year = int(year_match.group(1))
+        suffix = "p" if "PC" in group_name else "m"
+        calendar_group = sanitize(group_name, f"{year}{suffix}")
         for comp in module.get("components", []):
             items = image_items(comp)
-            if items:
-                groups.append(items)
-    groups = [g for g in groups if any(item.get("image") for item in g)]
-    # Pairs are PC then mobile; newest year first on the official page.
-    pair_count = len(groups) // 2
-    first_years = []
-    for item in groups[0] if groups else []:
-        m = re.search(r"/(\d{4})/\d{2}/", item.get("image", ""))
-        if m:
-            first_years.append(int(m.group(1)))
-    first_year = max(first_years) if first_years else 2026
-    years = [first_year - i for i in range(pair_count)]
-    records = []
-    for i, year in enumerate(years):
-        for suffix, group in [("p", groups[i * 2]), ("m", groups[i * 2 + 1])]:
-            for item in group:
-                month_match = re.search(r"(\d{1,2})月", str(item.get("tab_name", "")))
+            for item in items:
+                source_name = str(item.get("tab_name", "")).strip()
+                month_match = re.search(r"(\d{1,2})月", source_name)
                 if not month_match:
                     continue
                 month = int(month_match.group(1))
                 url = item["image"]
                 ext = ext_from_url(url, ".jpg")
-                base = f"{year}{month:02d}{suffix}"
+                base = source_name or f"{year}{month:02d}{suffix}"
                 records.append(
                     {
                         "resource_type": "calendar",
                         "category": CALENDAR_COLLECTION,
-                        "group": str(year),
+                        "group": calendar_group,
                         "entry_id": "684",
                         "module_id": "",
-                        "source_name": item.get("tab_name", ""),
+                        "source_name": source_name,
                         "url": url,
                         "ext": ext,
                         "base": base,
-                        "relative_dir": path_join(WALLPAPER_ROOT, CALENDAR_COLLECTION, str(year)),
+                        "relative_dir": path_join(WALLPAPER_ROOT, CALENDAR_COLLECTION, calendar_group),
                     }
                 )
     return add_targets(records)

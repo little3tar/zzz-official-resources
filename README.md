@@ -1,42 +1,47 @@
 # ZZZ Official Resources Skill
 
-这是一个用于拉取《绝区零》官方资源的 Codex skill。它通过米游社·绝区零绳网情报站公开整理的 Wiki 数据接口读取资源清单，并把图片、视频等资源下载到本地指定目录。
+用于拉取《绝区零》绳网情报站中公开整理的官方资源，并按本地目录结构保存、检查和补齐文件。项目本身不维护官方内容，也不拥有这些资源；它只是把已经整理好的公开资源清单转换为可下载、可校验、可修复的本地文件集合。
 
-这个项目不负责维护官方内容本身，也不声称拥有这些资源；它只是把已经整理好的公开资源结构化为本地可检查、可下载、可修复的文件集合。
+数据来源：[米游社·绝区零绳网情报站](https://baike.mihoyo.com/zzz/wiki/)
 
-## 能力范围
+## 资源范围
 
-- 日历壁纸：拉取官方月历壁纸资源。
-- 壁纸合集：拉取壁纸合集页面中的静态图片和动态壁纸视频。
-- 代理人意象影画：拉取代理人影画展示图。
+当前清单共 `1904` 条资源：
 
-当前内置清单规模：
+| 类型 | 数量 | 说明 |
+| --- | ---: | --- |
+| `calendar` | 58 | 月历壁纸 |
+| `wallpapers` | 1693 | 壁纸合集中的图片和动态壁纸视频 |
+| `cinema` | 153 | 代理人意象影画 |
 
-- `calendar`：56 条
-- `wallpapers`：1691 条
-- `cinema`：153 条
-- 合计：1900 条
+## 已下载资源
 
-## 已下载资源共享
+2026-05-05 已按当前目录结构完成一次本地补齐和检查，全部资源均已存在且非 0 字节。
 
-2026-04-29 运行本 skill 拉取到的完整资源，已分别上传到 Google Drive 和 OneDrive，并开启共享。需要直接获取已下载资源时，可以使用下面的链接：
+共享快照：
 
-- Google Drive：https://drive.google.com/drive/folders/1dhHrK1h-rSo_LSU9s5YW5IIJf0dC23Zd?usp=sharing
 - OneDrive：https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsMa644?e=EgABsQ
 
-这些共享文件是某次运行结果的快照。若需要确认是否有新增、移除或改名的远端资源，仍建议使用 `check-remote` 重新检查。
+共享文件是某次运行结果的快照。若需要确认远端是否有新增、移除或改名，仍建议重新运行 `check-remote` 或 `check-local`。
 
 ## 下载目录结构
 
-执行 `download` 或 `repair` 时，脚本会把资源写入用户指定的 `--dest` 目录，并按当前共享目录结构组织文件：
+执行 `download` 或 `repair` 时，脚本会把资源写入用户指定的 `--dest` 目录：
 
 ```text
 <dest>/
   壁纸合集/
     月历壁纸合集/
-      <year>/
-        YYYYMMp.ext
-        YYYYMMm.ext
+      2024PC版壁纸收录/
+        1月.jpeg
+        ...
+      2024手机版壁纸收录/
+        1月.jpeg
+        ...
+      2025PC版壁纸收录/
+      2025手机版壁纸收录/
+      2026PC版壁纸收录/
+      2026手机版壁纸收录/
     <collection>/
       <web group>/
         ...
@@ -47,23 +52,17 @@
       影画展示3.ext
 ```
 
-日历壁纸已归入 `壁纸合集/月历壁纸合集/`。其中 `p` 表示 PC 版，`m` 表示移动端版。壁纸合集会尽量保留绳网情报站页面中的合集和分组结构；少数单分组合集会被扁平化到合集目录下。代理人意象影画按代理人名称分目录保存到 `意象影画/`。
+月历壁纸使用绳网情报站页面中的官方分组名，例如 `2026PC版壁纸收录`、`2026手机版壁纸收录`；文件名使用页面中的月份标签，例如 `5月.png`。普通壁纸合集尽量保留页面中的合集和分组结构，少数单分组合集会扁平化到合集目录下。意象影画按代理人名称分目录保存。
 
 ## 命令
 
-建议使用 Codex Desktop 捆绑的 Python 运行：
+建议使用 Codex Desktop 捆绑的 Python：
 
 ```powershell
 C:\Users\admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe scripts\zzz_resources.py list-resources
 ```
 
-也可以在系统 Python 可用时使用：
-
-```powershell
-python scripts\zzz_resources.py list-resources
-```
-
-可用命令：
+常用命令：
 
 ```powershell
 python scripts\zzz_resources.py list-resources
@@ -86,8 +85,8 @@ python scripts\zzz_resources.py export-manifest --type all --dest "C:\path\to\cs
 - Python 3。
 - 仅使用 Python 标准库，不需要额外安装第三方依赖。
 - `check-remote`、`check-local`、`download`、`repair` 会访问米游社 Wiki 相关接口。
-- `download`、`repair`、`check-local` 和 `export-manifest` 需要用户指定 `--dest`。
-- 在受限沙箱、企业网络或代理环境中，远端检查和下载可能需要额外网络权限或代理配置。
+- `download`、`repair`、`check-local` 和 `export-manifest` 需要指定 `--dest`。
+- 受限网络、企业代理或沙箱环境中，远端检查和下载可能需要额外网络权限或代理配置。
 
 ## 状态文件
 
@@ -98,22 +97,18 @@ python scripts\zzz_resources.py export-manifest --type all --dest "C:\path\to\cs
 - `state/cinema_manifest.csv`
 - `state/last_check_report.csv`
 
-这些文件用于记录当前资源清单和最近一次检查结果。默认不要把内部状态文件写入用户资源目录；只有用户明确需要导出清单时，才使用 `export-manifest`。
+这些文件记录当前资源清单和最近一次检查结果。默认不要把内部状态文件写入用户资源目录；只有明确需要导出清单时，才使用 `export-manifest`。
 
-## 本次验证
+## 最近验证
 
-验证日期：2026-04-29
+验证日期：2026-05-05
 
 已执行并通过：
 
 - Python 语法编译检查。
-- `--help` 命令检查。
-- `list-resources` 清单读取检查。
-- `check-remote --type all` 远端接口检查，结果为 `records=1900 unchanged=1900`。
-- `check-local --type all` 对空临时目录检查，结果为 `records=1900 missing=1900`。
-- `export-manifest --type all` 对临时目录导出检查，结果为 `exported=4`。
-
-未执行完整下载和修复测试，因为这会批量下载大量图片和视频资源到用户目录。当前命令结构和远端数据读取已验证可用。
+- 重新读取月历页面，按官方分组生成月历目录。
+- `check-local --type all` 对本地 OneDrive 目录检查，结果为 `records=1904 ok=1904`。
+- 清理了旧月历命名逻辑留下的多余文件，并按官方分组重命名月历壁纸。
 
 ## 注意事项
 

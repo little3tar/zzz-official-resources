@@ -58,7 +58,7 @@ C:\Users\admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\p
 
 ## Naming
 
-- Calendar wallpapers: `壁纸合集/月历壁纸合集/<year>/YYYYMMp.ext` for PC and `YYYYMMm.ext` for mobile.
+- Calendar wallpapers: `壁纸合集/月历壁纸合集/<year>PC版壁纸收录/<month>月.ext` and `壁纸合集/月历壁纸合集/<year>手机版壁纸收录/<month>月.ext`.
 - Wallpaper collections: `壁纸合集/<collection>/<web group>/...`; single-group collections are flattened.
 - Agent cinema images: `意象影画/<agent>/影画展示1.ext`, `影画展示2.ext`, `影画展示3.ext`.
 
@@ -76,6 +76,6 @@ Writing outside the workspace or into OneDrive may require escalation. Ask for c
 - Static images usually come from `map_desc` component data: `data.list[].image` with `data.list[].tab_name`.
 - Dynamic wallpaper MP4 files are embedded in rich text as `data-video-url` or `<video src=...>`, not in `map_desc.image`.
 - Agent cinema files are the three image tabs named `影画展示1`, `影画展示2`, and `影画展示3`. Preview/unreleased agents may have no cinema images; treat that as normal, not as a failure.
-- Calendar wallpaper modules are arranged in PC/mobile pairs. Infer year from image URLs and month from tab names instead of hard-coding a fixed year range.
+- Calendar wallpaper modules expose group names such as `2026PC版壁纸收录` and `2026手机版壁纸收录`. Infer the year and PC/mobile suffix from those group names, and infer the month from tab names.
 - Manifests and check reports must stay in `state/` by default. Only run `export-manifest` after the user explicitly asks to inspect or receive CSV files.
 - Never delete user files automatically. If remote resources disappear, local files are extra, or old empty folders remain, report them and ask before deletion.
