@@ -14,6 +14,14 @@
 | `cinema` | 156 | 代理人意象影画 |
 | `goodwill` | 54 | 代理人好感壁纸视频 |
 
+## OneDrive 共享
+
+本地整理好的完整资源已在 OneDrive 共享：
+
+https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsMa644?e=pucHMa
+
+共享文件是某次运行结果的快照。若需确认远端是否有新增、移除或改名，建议重新运行 `check-remote` 或 `check-local`。
+
 ## 下载目录结构
 
 ```text
