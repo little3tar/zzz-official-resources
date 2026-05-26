@@ -1,6 +1,6 @@
 ---
 name: zzz-official-resources
-description: Download, update-check, repair, and export official Zenless Zone Zero resources from miHoYo Wiki, including calendar wallpapers, wallpaper collection pages, and agent cinema/mindscape images. Use when users ask to download ZZZ official images/videos, check official resource updates, repair missing local files, or export manifests.
+description: Download, update-check, repair, and export official Zenless Zone Zero resources from miHoYo Wiki, including wallpaper collections, agent cinema/mindscape images, and agent goodwill wallpaper videos. Use when users ask to download ZZZ official images/videos, check official resource updates, repair missing local files, or export manifests.
 metadata:
   short-description: Download and check ZZZ official resources
 ---
@@ -12,12 +12,13 @@ Use this skill for official Zenless Zone Zero resources from miHoYo Wiki:
 - Calendar wallpapers
 - Wallpaper collection pages under `壁纸合集`
 - Agent `意象影画` images
+- Agent `好感壁纸` videos
 
 ## Required Interaction
 
 Before running a command that writes user files, ask the user to choose:
 
-1. Resource type: `calendar`, `wallpapers`, `cinema`, or `all`
+1. Resource type: `wallpapers`, `cinema`, `goodwill`, or `all`
 2. Operation: `download`, `check-remote`, `check-local`, `repair`, or `export-manifest`
 3. Destination directory when the operation needs one
 
@@ -28,32 +29,26 @@ Do not assume a destination directory. Do not write manifests or CSV files into 
 Use the bundled script:
 
 ```powershell
-python scripts/zzz_resources.py list-resources
-python scripts/zzz_resources.py check-remote --type all
+python scripts/zzz_resources.py list-resources --dest "C:\path\to\resources"
+python scripts/zzz_resources.py check-remote --type all --dest "C:\path\to\resources"
 python scripts/zzz_resources.py check-local --type all --dest "C:\path\to\resources"
 python scripts/zzz_resources.py download --type all --dest "C:\path\to\resources"
 python scripts/zzz_resources.py repair --type all --dest "C:\path\to\resources"
-python scripts/zzz_resources.py export-manifest --type all --dest "C:\path\for\csv"
-```
-
-Use the bundled Python runtime if available in Codex Desktop:
-
-```powershell
-C:\Users\admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe scripts\zzz_resources.py ...
+python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
 ```
 
 ## Behavior
 
-- Internal manifests live in this skill's `state/` directory:
-  - `calendar_manifest.csv`
+- Manifests and reports are stored in `<dest>/.manifests/`:
   - `wallpapers_manifest.csv`
   - `cinema_manifest.csv`
+  - `goodwill_manifest.csv`
   - `last_check_report.csv`
-- `download` refreshes the internal manifest and writes resources to the confirmed destination.
-- `check-remote` compares the current official site against the internal manifest and writes only `state/last_check_report.csv`.
+- `download` refreshes the manifest and writes resources to the confirmed destination.
+- `check-remote` compares the current official site against the existing manifest and writes the check report.
 - `check-local` checks the confirmed destination for missing or zero-byte files.
 - `repair` only downloads missing or zero-byte files.
-- `export-manifest` copies internal manifests to the user-confirmed destination.
+- `export-manifest` copies manifests from `--manifest-src` to `--dest` (separate from the project manifests).
 - Never delete user files automatically. Report unknown extra files or removed remote resources instead.
 
 ## Naming
@@ -61,6 +56,7 @@ C:\Users\admin\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\p
 - Calendar wallpapers: `壁纸合集/月历壁纸合集/<year>PC版壁纸收录/<month>月.ext` and `壁纸合集/月历壁纸合集/<year>手机版壁纸收录/<month>月.ext`.
 - Wallpaper collections: `壁纸合集/<collection>/<web group>/...`; single-group collections are flattened.
 - Agent cinema images: `意象影画/<agent>/影画展示1.ext`, `影画展示2.ext`, `影画展示3.ext`.
+- Agent goodwill wallpapers: `好感壁纸/<agent>/<agent>好感壁纸.mp4`.
 
 ## Safety Notes
 
@@ -77,5 +73,5 @@ Writing outside the workspace or into OneDrive may require escalation. Ask for c
 - Dynamic wallpaper MP4 files are embedded in rich text as `data-video-url` or `<video src=...>`, not in `map_desc.image`.
 - Agent cinema files are the three image tabs named `影画展示1`, `影画展示2`, and `影画展示3`. Preview/unreleased agents may have no cinema images; treat that as normal, not as a failure.
 - Calendar wallpaper modules expose group names such as `2026PC版壁纸收录` and `2026手机版壁纸收录`. Infer the year and PC/mobile suffix from those group names, and infer the month from tab names.
-- Manifests and check reports must stay in `state/` by default. Only run `export-manifest` after the user explicitly asks to inspect or receive CSV files.
+- Manifests and check reports are stored in `<dest>/.manifests/`. Only run `export-manifest` after the user explicitly asks to inspect or receive CSV files.
 - Never delete user files automatically. If remote resources disappear, local files are extra, or old empty folders remain, report them and ask before deletion.

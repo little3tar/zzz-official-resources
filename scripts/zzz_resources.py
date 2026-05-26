@@ -12,8 +12,6 @@ from pathlib import Path
 
 
 SKILL_DIR = Path(__file__).resolve().parents[1]
-STATE_DIR = SKILL_DIR / "state"
-STATE_DIR.mkdir(parents=True, exist_ok=True)
 
 BLACKBOARD = "https://act-api-takumi-static.mihoyo.com/common/blackboard/zzz_wiki"
 ENTRY_API = "https://act-api-takumi-static.mihoyo.com/hoyowiki/zzz/wapi/entry_page"
@@ -22,19 +20,32 @@ HEADERS = {
     "X-Rpc-Wiki_app": "zzz",
 }
 
-MANIFESTS = {
-    "calendar": STATE_DIR / "calendar_manifest.csv",
-    "wallpapers": STATE_DIR / "wallpapers_manifest.csv",
-    "cinema": STATE_DIR / "cinema_manifest.csv",
-}
-REPORT = STATE_DIR / "last_check_report.csv"
+
+def _manifest_dir(dest):
+    d = Path(dest) / ".manifests"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _manifest_path(type_name, dest):
+    return _manifest_dir(dest) / f"{type_name}_manifest.csv"
+
+
+def _report_path(dest):
+    return _manifest_dir(dest) / "last_check_report.csv"
 WALLPAPER_ROOT = "壁纸合集"
 CALENDAR_COLLECTION = "月历壁纸合集"
 CINEMA_ROOT = "意象影画"
+GOODWILL_ROOT = "好感壁纸"
 
 WALLPAPER_COLLECTIONS = [
     ("EP短片壁纸合集", 1864),
     ("EP短片壁纸合集", 1599),
+    ("New Eridan 时尚", 1990),
+    ("丽都有丽事", 1989),
+    ("六分街街头热话", 1988),
+    ("邦布们的说明书", 1987),
+    ("活动壁纸合集", 1965),
     ("动态壁纸合集", 1127),
     ("EP短片壁纸合集", 1085),
     ("影像档案壁纸合集", 1084),
@@ -45,7 +56,22 @@ WALLPAPER_COLLECTIONS = [
     ("活动壁纸合集", 685),
     ("生日贺图壁纸合集", 775),
 ]
-FLATTEN_WALLPAPER_CATEGORIES = {"动态壁纸合集", "过塑手账壁纸合集", "丽都放大镜壁纸合集"}
+FLATTEN_WALLPAPER_CATEGORIES = {
+    "动态壁纸合集",
+    "过塑手账壁纸合集",
+    "丽都放大镜壁纸合集",
+    "六分街街头热话",
+}
+NAME_GROUPED_CATEGORIES = {"丽都有丽事", "邦布们的说明书"}
+
+
+def extract_series_base(tab_name):
+    """从 tab_name 末尾剥离数字，返回 (系列名, 是否有数字后缀)。"""
+    name = tab_name.strip()
+    m = re.match(r"^(.+?)(\d+)$", name)
+    if m:
+        return m.group(1).strip(), True
+    return name, False
 
 
 def request_bytes(url, timeout=60):
@@ -172,7 +198,7 @@ def build_calendar():
                 base = source_name or f"{year}{month:02d}{suffix}"
                 records.append(
                     {
-                        "resource_type": "calendar",
+                        "resource_type": "wallpapers",
                         "category": CALENDAR_COLLECTION,
                         "group": calendar_group,
                         "entry_id": "684",
@@ -192,11 +218,12 @@ def build_wallpapers():
     for category, entry_id in WALLPAPER_COLLECTIONS:
         page = fetch_entry(entry_id)
         group_names = module_group_names(page)
+        is_name_grouped = category in NAME_GROUPED_CATEGORIES
         for module in page.get("modules", []):
             module_id = str(module.get("id") or "")
             group = group_names.get(module_id, "") or page.get("name") or category
-            use_group_dir = category not in FLATTEN_WALLPAPER_CATEGORIES
-            relative_dir = path_join(WALLPAPER_ROOT, category, sanitize(group, f"{entry_id}-{module_id}") if use_group_dir else "")
+            use_group_dir = category not in FLATTEN_WALLPAPER_CATEGORIES if not is_name_grouped else False
+            base_relative_dir = path_join(WALLPAPER_ROOT, category, sanitize(group, f"{entry_id}-{module_id}") if use_group_dir else "")
             img_seq = 0
             vid_seq = 0
             for comp in module.get("components", []):
@@ -204,18 +231,29 @@ def build_wallpapers():
                     img_seq += 1
                     name = str(item.get("tab_name") or "").strip()
                     base = sanitize(name, "壁纸")
+                    if is_name_grouped:
+                        series_name, has_suffix = extract_series_base(name)
+                        if has_suffix:
+                            item_group = sanitize(series_name, f"{entry_id}-{module_id}")
+                            item_dir = path_join(WALLPAPER_ROOT, category, item_group)
+                        else:
+                            item_group = ""
+                            item_dir = path_join(WALLPAPER_ROOT, category)
+                    else:
+                        item_group = group if use_group_dir else ""
+                        item_dir = base_relative_dir
                     records.append(
                         {
                             "resource_type": "wallpapers",
                             "category": category,
-                            "group": group if use_group_dir else "",
+                            "group": item_group,
                             "entry_id": str(entry_id),
                             "module_id": module_id,
                             "source_name": name,
                             "url": item["image"],
                             "ext": ext_from_url(item["image"], ".jpg"),
                             "base": base,
-                            "relative_dir": relative_dir,
+                            "relative_dir": item_dir,
                         }
                     )
                 for url in video_urls(comp):
@@ -232,7 +270,7 @@ def build_wallpapers():
                             "url": url,
                             "ext": ext_from_url(url, ".mp4"),
                             "base": base,
-                            "relative_dir": relative_dir,
+                            "relative_dir": base_relative_dir,
                         }
                     )
     return add_targets(records)
@@ -300,23 +338,56 @@ def build_cinema():
     return add_targets(records)
 
 
+def build_goodwill():
+    url = f"{BLACKBOARD}/v1/home/content/list?app_sn=zzz_wiki&channel_id=99&page_num=1&page_size=100"
+    data = load_json(url, timeout=30)["data"]
+    channel = find_channel({"children": data["list"]}, 99)
+    if not channel:
+        raise RuntimeError("goodwill channel 99 not found")
+    records = []
+    for item in channel.get("list", []):
+        entry_id = int(item["content_id"])
+        title = item.get("title") or ""
+        agent = title.replace("好感壁纸", "").strip()
+        if not agent:
+            continue
+        page = fetch_entry(entry_id)
+        for module in page.get("modules", []):
+            module_id = str(module.get("id") or "")
+            for comp in module.get("components", []):
+                for url in video_urls(comp):
+                    records.append(
+                        {
+                            "resource_type": "goodwill",
+                            "category": GOODWILL_ROOT,
+                            "group": agent,
+                            "entry_id": str(entry_id),
+                            "module_id": module_id,
+                            "source_name": title,
+                            "url": url,
+                            "ext": ext_from_url(url, ".mp4"),
+                            "base": sanitize(f"{agent}好感壁纸", f"goodwill-{entry_id}"),
+                            "relative_dir": path_join(GOODWILL_ROOT, sanitize(agent, str(entry_id))),
+                        }
+                    )
+    return add_targets(records)
+
+
 def expand_types(type_name):
-    return ["calendar", "wallpapers", "cinema"] if type_name == "all" else [type_name]
+    return ["wallpapers", "cinema", "goodwill"] if type_name == "all" else [type_name]
 
 
 def build_records(type_name):
-    builders = {"calendar": build_calendar, "wallpapers": build_wallpapers, "cinema": build_cinema}
+    builders = {"wallpapers": build_wallpapers, "cinema": build_cinema, "goodwill": build_goodwill}
     records = []
     for t in expand_types(type_name):
+        if t == "wallpapers":
+            records.extend(build_calendar())
         records.extend(builders[t]())
     return records
 
 
-def manifest_path(type_name):
-    return MANIFESTS[type_name]
-
-
-def write_manifest(type_name, records):
+def write_manifest(type_name, records, dest):
     fields = [
         "resource_type",
         "key",
@@ -332,7 +403,7 @@ def write_manifest(type_name, records):
         "content_length",
         "status",
     ]
-    path = manifest_path(type_name)
+    path = _manifest_path(type_name, dest)
     with path.open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
@@ -340,8 +411,8 @@ def write_manifest(type_name, records):
             writer.writerow({field: r.get(field, "") for field in fields})
 
 
-def read_manifest(type_name):
-    path = manifest_path(type_name)
+def read_manifest(type_name, dest):
+    path = _manifest_path(type_name, dest)
     if not path.exists():
         return []
     with path.open("r", encoding="utf-8-sig", newline="") as f:
@@ -355,9 +426,9 @@ def split_by_type(records):
     return grouped
 
 
-def save_by_type(records):
+def save_by_type(records, dest):
     for t, rows in split_by_type(records).items():
-        write_manifest(t, rows)
+        write_manifest(t, rows, dest)
 
 
 def download_records(records, dest, only_bad=False):
@@ -407,50 +478,52 @@ def check_local_records(records, dest):
     return report
 
 
-def write_report(rows):
+def write_report(rows, dest):
     fields = sorted({key for row in rows for key in row.keys()}) if rows else ["status"]
-    with REPORT.open("w", encoding="utf-8-sig", newline="") as f:
+    path = _report_path(dest)
+    with path.open("w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=fields)
         writer.writeheader()
         for row in rows:
             writer.writerow({field: row.get(field, "") for field in fields})
 
 
-def cmd_list(_args):
-    for t in ("calendar", "wallpapers", "cinema"):
-        rows = read_manifest(t)
-        print(f"{t}: manifest={manifest_path(t)} rows={len(rows)}")
+def cmd_list(args):
+    dest = args.dest
+    for t in ("wallpapers", "cinema", "goodwill"):
+        rows = read_manifest(t, dest)
+        print(f"{t}: manifest={_manifest_path(t, dest)} rows={len(rows)}")
 
 
 def cmd_download(args):
     records = build_records(args.type)
     downloaded, skipped = download_records(records, args.dest, only_bad=False)
-    save_by_type(records)
+    save_by_type(records, args.dest)
     print(f"records={len(records)} downloaded={downloaded} skipped={skipped}")
 
 
 def cmd_repair(args):
     records = build_records(args.type)
     downloaded, skipped = download_records(records, args.dest, only_bad=True)
-    save_by_type(records)
+    save_by_type(records, args.dest)
     print(f"records={len(records)} repaired={downloaded} ok={skipped}")
 
 
 def cmd_check_local(args):
     records = build_records(args.type)
-    save_by_type(records)
+    save_by_type(records, args.dest)
     report = check_local_records(records, args.dest)
-    write_report(report)
+    write_report(report, args.dest)
     counts = Counter(row["check_status"] for row in report)
     print(f"records={len(report)} " + " ".join(f"{k}={v}" for k, v in sorted(counts.items())))
-    print(f"report={REPORT}")
+    print(f"report={_report_path(args.dest)}")
 
 
 def cmd_check_remote(args):
     current = build_records(args.type)
     old = []
     for t in expand_types(args.type):
-        old.extend(read_manifest(t))
+        old.extend(read_manifest(t, args.dest))
     old_by_key = {r.get("key") or stable_key(r): r for r in old}
     cur_by_key = {r["key"]: r for r in current}
     rows = []
@@ -459,11 +532,11 @@ def cmd_check_remote(args):
     for key, r in old_by_key.items():
         if key not in cur_by_key:
             rows.append({**r, "remote_status": "removed_or_changed"})
-    write_report(rows)
-    save_by_type(current)
+    write_report(rows, args.dest)
+    save_by_type(current, args.dest)
     counts = Counter(row["remote_status"] for row in rows)
     print(f"records={len(rows)} " + " ".join(f"{k}={v}" for k, v in sorted(counts.items())))
-    print(f"report={REPORT}")
+    print(f"report={_report_path(args.dest)}")
 
 
 def cmd_export(args):
@@ -471,12 +544,13 @@ def cmd_export(args):
     dest.mkdir(parents=True, exist_ok=True)
     copied = 0
     for t in expand_types(args.type):
-        src = manifest_path(t)
+        src = _manifest_path(t, args.manifest_src)
         if src.exists():
             shutil.copy2(src, dest / src.name)
             copied += 1
-    if REPORT.exists():
-        shutil.copy2(REPORT, dest / REPORT.name)
+    report_src = _report_path(args.manifest_src)
+    if report_src.exists():
+        shutil.copy2(report_src, dest / report_src.name)
         copied += 1
     print(f"exported={copied} dest={dest}")
 
@@ -484,15 +558,18 @@ def cmd_export(args):
 def main():
     parser = argparse.ArgumentParser(description="Download and check official ZZZ Wiki resources.")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("list-resources")
+    p = sub.add_parser("list-resources")
+    p.add_argument("--dest", required=True)
     for name in ("download", "repair", "check-local"):
         p = sub.add_parser(name)
-        p.add_argument("--type", choices=["calendar", "wallpapers", "cinema", "all"], required=True)
+        p.add_argument("--type", choices=["wallpapers", "cinema", "goodwill", "all"], required=True)
         p.add_argument("--dest", required=True)
     p = sub.add_parser("check-remote")
-    p.add_argument("--type", choices=["calendar", "wallpapers", "cinema", "all"], required=True)
+    p.add_argument("--type", choices=["wallpapers", "cinema", "goodwill", "all"], required=True)
+    p.add_argument("--dest", required=True)
     p = sub.add_parser("export-manifest")
-    p.add_argument("--type", choices=["calendar", "wallpapers", "cinema", "all"], required=True)
+    p.add_argument("--type", choices=["wallpapers", "cinema", "goodwill", "all"], required=True)
+    p.add_argument("--manifest-src", required=True)
     p.add_argument("--dest", required=True)
     args = parser.parse_args()
     {
