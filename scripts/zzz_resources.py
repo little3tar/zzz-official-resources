@@ -499,14 +499,20 @@ def cmd_download(args):
     records = build_records(args.type)
     downloaded, skipped = download_records(records, args.dest, only_bad=False)
     save_by_type(records, args.dest)
-    print(f"records={len(records)} downloaded={downloaded} skipped={skipped}")
+    report = check_local_records(records, args.dest)
+    write_report(report, args.dest)
+    counts = Counter(row["check_status"] for row in report)
+    print(f"records={len(records)} downloaded={downloaded} skipped={skipped} " + " ".join(f"{k}={v}" for k, v in sorted(counts.items())))
 
 
 def cmd_repair(args):
     records = build_records(args.type)
     downloaded, skipped = download_records(records, args.dest, only_bad=True)
     save_by_type(records, args.dest)
-    print(f"records={len(records)} repaired={downloaded} ok={skipped}")
+    report = check_local_records(records, args.dest)
+    write_report(report, args.dest)
+    counts = Counter(row["check_status"] for row in report)
+    print(f"records={len(records)} repaired={downloaded} ok={skipped} " + " ".join(f"{k}={v}" for k, v in sorted(counts.items())))
 
 
 def cmd_check_local(args):
