@@ -73,7 +73,7 @@ Writing outside the workspace or into OneDrive may require escalation. Ask for c
 - For wallpaper collection grouping, do not rely on `module.name`; it is often empty. Use `template_layout.tab[].module_group[].name` and map those group modules back to `page.modules[].id`.
 - Static images usually come from `map_desc` component data: `data.list[].image` with `data.list[].tab_name`.
 - Dynamic wallpaper MP4 files are embedded in rich text as `data-video-url` or `<video src=...>`, not in `map_desc.image`.
-- Agent cinema files are the three image tabs named `影画展示1`, `影画展示2`, and `影画展示3` from module 279. Preview/unreleased agents may have no cinema images; treat that as normal, not as a failure.
+- Agent cinema files are image tabs matching `影画展示\d` prefix from module 279. Most agents have three (`影画展示1/2/3`); special cases (e.g. 佩洛伊斯) may have fewer with suffixes like `影画展示1-哲`/`影画展示1-铃`. Preview/unreleased agents may have no cinema images; treat that as normal, not as a failure.
 - Agent character display (角色好感) images/GIFs come from module 12 — collect all `map_desc` items unconditionally.
 - Agent media materials (媒体物料) come from module 949 — collect all `map_desc` items unconditionally.
 - Agent goodwill wallpapers (好感壁纸) come from channel 99 independent entry pages — extract MP4 via `data-video-url`.

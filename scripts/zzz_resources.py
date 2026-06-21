@@ -330,9 +330,9 @@ def build_cinema():
                         continue
                     cinema_items = [
                         item for item in items
-                        if re.fullmatch(r"影画展示[123]", str(item.get("tab_name") or ""))
+                        if re.match(r"影画展示\d", str(item.get("tab_name") or ""))
                     ]
-                    if len(cinema_items) == 3:
+                    if cinema_items:
                         seen_279_cinema = True
                         for item in cinema_items:
                             name = str(item.get("tab_name") or "").strip()
