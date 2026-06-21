@@ -35,8 +35,7 @@ def _report_path(dest):
     return _manifest_dir(dest) / "last_check_report.csv"
 WALLPAPER_ROOT = "壁纸合集"
 CALENDAR_COLLECTION = "月历壁纸合集"
-CINEMA_ROOT = "意象影画"
-GOODWILL_ROOT = "好感壁纸"
+AGENT_ROOT = "代理档案"
 
 WALLPAPER_COLLECTIONS = [
     ("EP短片壁纸合集", 1864),
@@ -305,25 +304,41 @@ def agent_entries():
 
 
 def build_cinema():
+    """采集特工页面上的意象影画、角色好感、媒体物料三个模块。"""
+    MODULE_CATEGORY = {
+        "279": "意象影画",
+        "12": "角色好感",
+        "949": "媒体物料",
+    }
     records = []
     for entry in agent_entries():
         page = fetch_entry(entry["entry_id"])
         role = entry["role"] or page.get("name") or str(entry["entry_id"])
+        role_dir = sanitize(role, str(entry["entry_id"]))
+        seen_279_cinema = False
         for module in page.get("modules", []):
             module_id = str(module.get("id") or "")
+            category = MODULE_CATEGORY.get(module_id)
+            if not category:
+                continue
             for comp in module.get("components", []):
-                cinema = [
-                    item
-                    for item in image_items(comp)
-                    if re.fullmatch(r"影画展示[123]", str(item.get("tab_name") or ""))
-                ]
-                if len(cinema) == 3:
-                    for item in cinema:
-                        name = str(item.get("tab_name") or "").strip()
-                        records.append(
-                            {
+                items = image_items(comp)
+                if not items:
+                    continue
+                if module_id == "279":
+                    if seen_279_cinema:
+                        continue
+                    cinema_items = [
+                        item for item in items
+                        if re.fullmatch(r"影画展示[123]", str(item.get("tab_name") or ""))
+                    ]
+                    if len(cinema_items) == 3:
+                        seen_279_cinema = True
+                        for item in cinema_items:
+                            name = str(item.get("tab_name") or "").strip()
+                            records.append({
                                 "resource_type": "cinema",
-                                "category": CINEMA_ROOT,
+                                "category": category,
                                 "group": role,
                                 "entry_id": str(entry["entry_id"]),
                                 "module_id": module_id,
@@ -331,10 +346,25 @@ def build_cinema():
                                 "url": item["image"],
                                 "ext": ext_from_url(item["image"], ".png"),
                                 "base": name,
-                                "relative_dir": path_join(CINEMA_ROOT, sanitize(role, str(entry["entry_id"]))),
-                            }
-                        )
-                    break
+                                "relative_dir": path_join(AGENT_ROOT, role_dir, category),
+                            })
+                else:
+                    for item in items:
+                        name = str(item.get("tab_name") or "").strip()
+                        if not name:
+                            continue
+                        records.append({
+                            "resource_type": "cinema",
+                            "category": category,
+                            "group": role,
+                            "entry_id": str(entry["entry_id"]),
+                            "module_id": module_id,
+                            "source_name": name,
+                            "url": item["image"],
+                            "ext": ext_from_url(item["image"], ".png"),
+                            "base": name,
+                            "relative_dir": path_join(AGENT_ROOT, role_dir, category),
+                        })
     return add_targets(records)
 
 
@@ -359,7 +389,7 @@ def build_goodwill():
                     records.append(
                         {
                             "resource_type": "goodwill",
-                            "category": GOODWILL_ROOT,
+                            "category": "好感壁纸",
                             "group": agent,
                             "entry_id": str(entry_id),
                             "module_id": module_id,
@@ -367,7 +397,7 @@ def build_goodwill():
                             "url": url,
                             "ext": ext_from_url(url, ".mp4"),
                             "base": sanitize(f"{agent}好感壁纸", f"goodwill-{entry_id}"),
-                            "relative_dir": path_join(GOODWILL_ROOT, sanitize(agent, str(entry_id))),
+                            "relative_dir": path_join(AGENT_ROOT, sanitize(agent, str(entry_id)), "好感壁纸"),
                         }
                     )
     return add_targets(records)

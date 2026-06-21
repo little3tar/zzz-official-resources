@@ -1,6 +1,6 @@
 ---
 name: zzz-official-resources
-description: Download, update-check, repair, and export official Zenless Zone Zero resources from miHoYo Wiki, including wallpaper collections, agent cinema/mindscape images, and agent goodwill wallpaper videos. Use when users ask to download ZZZ official images/videos, check official resource updates, repair missing local files, or export manifests.
+description: Download, update-check, repair, and export official Zenless Zone Zero resources from miHoYo Wiki, including wallpaper collections and agent profiles (cinema images, character display animations, media materials, goodwill wallpaper videos). Use when users ask to download ZZZ official images/videos, check official resource updates, repair missing local files, or export manifests.
 metadata:
   short-description: Download and check ZZZ official resources
 ---
@@ -11,8 +11,11 @@ Use this skill for official Zenless Zone Zero resources from miHoYo Wiki:
 
 - Calendar wallpapers
 - Wallpaper collection pages under `壁纸合集`
-- Agent `意象影画` images
-- Agent `好感壁纸` videos
+- Agent profiles under `代理档案`:
+  - `意象影画` mindscape/cinema images
+  - `角色好感` character display animations (GIF) and stills
+  - `媒体物料` media materials (character cards, unreleased images)
+  - `好感壁纸` goodwill wallpaper videos (MP4)
 
 ## Required Interaction
 
@@ -55,8 +58,7 @@ python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\pa
 
 - Calendar wallpapers: `壁纸合集/月历壁纸合集/<year>PC版壁纸收录/<month>月.ext` and `壁纸合集/月历壁纸合集/<year>手机版壁纸收录/<month>月.ext`.
 - Wallpaper collections: `壁纸合集/<collection>/<web group>/...`; single-group collections are flattened.
-- Agent cinema images: `意象影画/<agent>/影画展示1.ext`, `影画展示2.ext`, `影画展示3.ext`.
-- Agent goodwill wallpapers: `好感壁纸/<agent>/<agent>好感壁纸.mp4`.
+- Agent profiles: `代理档案/<agent>/意象影画/影画展示1.ext`, `影画展示2.ext`, `影画展示3.ext`; `代理档案/<agent>/角色好感/<tab_name>.ext`; `代理档案/<agent>/媒体物料/<tab_name>.ext`; `代理档案/<agent>/好感壁纸/<agent>好感壁纸.mp4`.
 
 ## Safety Notes
 
@@ -71,7 +73,10 @@ Writing outside the workspace or into OneDrive may require escalation. Ask for c
 - For wallpaper collection grouping, do not rely on `module.name`; it is often empty. Use `template_layout.tab[].module_group[].name` and map those group modules back to `page.modules[].id`.
 - Static images usually come from `map_desc` component data: `data.list[].image` with `data.list[].tab_name`.
 - Dynamic wallpaper MP4 files are embedded in rich text as `data-video-url` or `<video src=...>`, not in `map_desc.image`.
-- Agent cinema files are the three image tabs named `影画展示1`, `影画展示2`, and `影画展示3`. Preview/unreleased agents may have no cinema images; treat that as normal, not as a failure.
+- Agent cinema files are the three image tabs named `影画展示1`, `影画展示2`, and `影画展示3` from module 279. Preview/unreleased agents may have no cinema images; treat that as normal, not as a failure.
+- Agent character display (角色好感) images/GIFs come from module 12 — collect all `map_desc` items unconditionally.
+- Agent media materials (媒体物料) come from module 949 — collect all `map_desc` items unconditionally.
+- Agent goodwill wallpapers (好感壁纸) come from channel 99 independent entry pages — extract MP4 via `data-video-url`.
 - Calendar wallpaper modules expose group names such as `2026PC版壁纸收录` and `2026手机版壁纸收录`. Infer the year and PC/mobile suffix from those group names, and infer the month from tab names.
 - Manifests and check reports are stored in `<dest>/.manifests/`. Only run `export-manifest` after the user explicitly asks to inspect or receive CSV files.
 - Never delete user files automatically. If remote resources disappear, local files are extra, or old empty folders remain, report them and ask before deletion.
