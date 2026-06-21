@@ -369,16 +369,41 @@ def build_cinema():
 
 
 def build_goodwill():
+    """采集好感壁纸视频，以 channel 43 的特工名为标准做交叉匹配。"""
     url = f"{BLACKBOARD}/v1/home/content/list?app_sn=zzz_wiki&channel_id=99&page_num=1&page_size=100"
     data = load_json(url, timeout=30)["data"]
     channel = find_channel({"children": data["list"]}, 99)
     if not channel:
         raise RuntimeError("goodwill channel 99 not found")
+
+    # 以 channel 43 的特工名为权威标准名
+    def _norm(s):
+        return re.sub(r"[·「」&！\s]", "", s)
+
+    canonical_names = {entry["role"] for entry in agent_entries()}
+    norm_to_canon = {}
+    for name in canonical_names:
+        norm_to_canon[_norm(name)] = name
+
+    def resolve_agent(title):
+        raw = title.replace("好感壁纸", "").replace("动态壁纸", "").strip()
+        if not raw:
+            return raw
+        raw_norm = _norm(raw)
+        if raw_norm in norm_to_canon:
+            return norm_to_canon[raw_norm]
+        # 子串匹配：处理"铃动态壁纸"这类 title 中不含"好感壁纸"的特殊条目
+        for canon_name in canonical_names:
+            canon_norm = _norm(canon_name)
+            if canon_norm in raw_norm or raw_norm in canon_norm:
+                return canon_name
+        return raw
+
     records = []
     for item in channel.get("list", []):
         entry_id = int(item["content_id"])
         title = item.get("title") or ""
-        agent = title.replace("好感壁纸", "").strip()
+        agent = resolve_agent(title)
         if not agent:
             continue
         page = fetch_entry(entry_id)
