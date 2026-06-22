@@ -13,7 +13,7 @@ Use this skill for official Zenless Zone Zero resources from miHoYo Wiki:
 - Wallpaper collection pages under `壁纸合集`
 - Agent profiles under `代理档案`:
   - `意象影画` mindscape/cinema images
-  - `角色好感` character display animations (GIF) and stills
+  - `角色展示` character display animations (GIF) and stills
   - `媒体物料` media materials (character cards, unreleased images)
   - `好感壁纸` goodwill wallpaper videos (MP4)
 
@@ -58,7 +58,7 @@ python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\pa
 
 - Calendar wallpapers: `壁纸合集/月历壁纸合集/<year>PC版壁纸收录/<month>月.ext` and `壁纸合集/月历壁纸合集/<year>手机版壁纸收录/<month>月.ext`.
 - Wallpaper collections: `壁纸合集/<collection>/<web group>/...`; single-group collections are flattened.
-- Agent profiles: `代理档案/<agent>/意象影画/影画展示1.ext`, `影画展示2.ext`, `影画展示3.ext`; `代理档案/<agent>/角色好感/<tab_name>.ext`; `代理档案/<agent>/媒体物料/<tab_name>.ext`; `代理档案/<agent>/好感壁纸/<agent>好感壁纸.mp4`.
+- Agent profiles: `代理档案/<agent>/意象影画/影画展示1.ext`, `影画展示2.ext`, `影画展示3.ext`; `代理档案/<agent>/角色展示/<tab_name>.ext`; `代理档案/<agent>/媒体物料/<tab_name>.ext`; `代理档案/<agent>/好感壁纸/<agent>好感壁纸.mp4`.
 
 ## Safety Notes
 
@@ -74,7 +74,7 @@ Writing outside the workspace or into OneDrive may require escalation. Ask for c
 - Static images usually come from `map_desc` component data: `data.list[].image` with `data.list[].tab_name`.
 - Dynamic wallpaper MP4 files are embedded in rich text as `data-video-url` or `<video src=...>`, not in `map_desc.image`.
 - Agent cinema files are image tabs matching `影画展示\d` prefix from module 279. Most agents have three (`影画展示1/2/3`); special cases (e.g. 佩洛伊斯) may have fewer with suffixes like `影画展示1-哲`/`影画展示1-铃`. Preview/unreleased agents may have no cinema images; treat that as normal, not as a failure.
-- Agent character display (角色好感) images/GIFs come from module 12 — collect all `map_desc` items unconditionally.
+- Agent character display (角色展示) images/GIFs come from module 12 — collect all `map_desc` items unconditionally.
 - Agent media materials (媒体物料) come from module 949 — collect all `map_desc` items unconditionally.
 - Agent goodwill wallpapers (好感壁纸) come from channel 99 independent entry pages — extract MP4 via `data-video-url`.
 - Calendar wallpaper modules expose group names such as `2026PC版壁纸收录` and `2026手机版壁纸收录`. Infer the year and PC/mobile suffix from those group names, and infer the month from tab names.

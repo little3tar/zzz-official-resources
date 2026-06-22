@@ -303,17 +303,43 @@ def agent_entries():
     ]
 
 
+def page_agent_name(page):
+    """从 module 2 (基础信息) 的 data JSON 中提取权威特工全名。"""
+    for mod in page.get("modules", []):
+        if str(mod.get("id") or "") == "2":
+            for comp in mod.get("components", []):
+                try:
+                    d = json.loads(comp.get("data") or "{}")
+                    name = (d.get("name") or "").strip()
+                    if name:
+                        return name
+                except json.JSONDecodeError:
+                    pass
+    return None
+
+
+def canonical_agent_names():
+    """遍历所有特工页面，返回权威名称映射 {entry_id: page_name}。"""
+    names = {}
+    for entry in agent_entries():
+        page = fetch_entry(entry["entry_id"])
+        name = page_agent_name(page)
+        if name:
+            names[entry["entry_id"]] = name
+    return names
+
+
 def build_cinema():
-    """采集特工页面上的意象影画、角色好感、媒体物料三个模块。"""
+    """采集特工页面上的意象影画、角色展示、媒体物料三个模块。"""
     MODULE_CATEGORY = {
         "279": "意象影画",
-        "12": "角色好感",
+        "12": "角色展示",
         "949": "媒体物料",
     }
     records = []
     for entry in agent_entries():
         page = fetch_entry(entry["entry_id"])
-        role = entry["role"] or page.get("name") or str(entry["entry_id"])
+        role = page_agent_name(page) or entry["role"] or page.get("name") or str(entry["entry_id"])
         role_dir = sanitize(role, str(entry["entry_id"]))
         seen_279_cinema = False
         for module in page.get("modules", []):
@@ -376,14 +402,28 @@ def build_goodwill():
     if not channel:
         raise RuntimeError("goodwill channel 99 not found")
 
-    # 以 channel 43 的特工名为权威标准名
+    # 以 page 全名为权威标准名，channel 43 alias 为兜底
     def _norm(s):
         return re.sub(r"[·「」&！\s]", "", s)
 
-    canonical_names = {entry["role"] for entry in agent_entries()}
+    page_names = canonical_agent_names()
+    alias_map = {entry["entry_id"]: entry["role"] for entry in agent_entries()}
+    canonical_names = set(page_names.values())
+    alias_to_page = {}  # alias → page_name 兜底映射
+    for eid, alias in alias_map.items():
+        if eid in page_names and alias != page_names[eid]:
+            alias_to_page[alias] = page_names[eid]
+        if eid not in page_names:
+            canonical_names.add(alias)
+
     norm_to_canon = {}
     for name in canonical_names:
         norm_to_canon[_norm(name)] = name
+    # alias 兜底：让 resolve 能通过别名找到 page 全名
+    for alias, page_name in alias_to_page.items():
+        key = _norm(alias)
+        if key not in norm_to_canon:
+            norm_to_canon[key] = page_name
 
     def resolve_agent(title):
         raw = title.replace("好感壁纸", "").replace("动态壁纸", "").strip()
