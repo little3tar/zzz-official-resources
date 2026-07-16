@@ -16,12 +16,15 @@ Use this skill for official Zenless Zone Zero resources from miHoYo Wiki:
   - `角色展示` character display animations (GIF) and stills
   - `媒体物料` media materials (character cards, unreleased images)
   - `好感壁纸` goodwill wallpaper videos (MP4)
+- Agent videos from channel 73 under `代理档案/<agent>/`:
+  - `不可售影像.mp4` non-sale character videos (highest quality: 2K > 1080P > 720P > 480P)
+  - `代理人档案.mp4` agent archive videos
 
 ## Required Interaction
 
 Before running a command that writes user files, ask the user to choose:
 
-1. Resource type: `wallpapers`, `cinema`, `goodwill`, or `all`
+1. Resource type: `wallpapers`, `cinema`, `goodwill`, `agent_videos`, or `all`
 2. Operation: `download`, `check-remote`, `check-local`, `repair`, or `export-manifest`
 3. Destination directory when the operation needs one
 
@@ -46,6 +49,7 @@ python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\pa
   - `wallpapers_manifest.csv`
   - `cinema_manifest.csv`
   - `goodwill_manifest.csv`
+  - `agent_videos_manifest.csv`
   - `last_check_report.csv`
 - `download` refreshes the manifest and writes resources to the confirmed destination.
 - `check-remote` compares the current official site against the existing manifest and writes the check report.
@@ -59,6 +63,7 @@ python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\pa
 - Calendar wallpapers: `壁纸合集/月历壁纸合集/<year>PC版壁纸收录/<month>月.ext` and `壁纸合集/月历壁纸合集/<year>手机版壁纸收录/<month>月.ext`.
 - Wallpaper collections: `壁纸合集/<collection>/<web group>/...`; single-group collections are flattened.
 - Agent profiles: `代理档案/<agent>/意象影画/影画展示1.ext`, `影画展示2.ext`, `影画展示3.ext`; `代理档案/<agent>/角色展示/<tab_name>.ext`; `代理档案/<agent>/媒体物料/<tab_name>.ext`; `代理档案/<agent>/好感壁纸/<agent>好感壁纸.mp4`.
+- Agent videos: `代理档案/<agent>/不可售影像.mp4` and `代理档案/<agent>/代理人档案.mp4`. Agent name is resolved from the video title and cross-matched against channel 43 canonical names.
 
 ## Safety Notes
 
@@ -80,3 +85,5 @@ Writing outside the workspace or into OneDrive may require escalation. Ask for c
 - Calendar wallpaper modules expose group names such as `2026PC版壁纸收录` and `2026手机版壁纸收录`. Infer the year and PC/mobile suffix from those group names, and infer the month from tab names.
 - Manifests and check reports are stored in `<dest>/.manifests/`. Only run `export-manifest` after the user explicitly asks to inspect or receive CSV files.
 - Never delete user files automatically. If remote resources disappear, local files are extra, or old empty folders remain, report them and ask before deletion.
+- Agent videos (`agent_videos`) come from channel 73 sub-items whose `entry_page` points to miyoushe articles. The workflow is: wiki entry → `ext.post_ext.post_id` → BBS post API → `vod_list[]` → pick highest-quality resolution. The BBS API (`bbs-api.miyoushe.com`) requires full browser security headers (`Sec-Fetch-*`, `Sec-Ch-Ua-*`, `Origin`) or it returns 403. Add `export https_proxy="socks5://127.0.0.1:2080"` before the Python command when the BBS API is IP-blocked.
+- Wallpaper collection "六分街街头异闻" was formerly named "六分街街头热话"; the script uses the current name. Old local directories may need renaming.

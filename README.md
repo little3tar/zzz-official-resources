@@ -6,13 +6,14 @@
 
 ## 资源范围
 
-当前清单共 `2888` 条资源：
+当前清单共 `3033` 条资源：
 
 | 类型 | 数量 | 说明 |
 | --- | ---: | --- |
-| `wallpapers` | 2148 | 壁纸合集（含月历、EP短片、阵营、节日、活动、New Eridan 时尚等） |
-| `cinema` | 684 | 代理档案（意象影画 164、角色展示 357、媒体物料 163） |
-| `goodwill` | 56 | 好感壁纸视频 |
+| `wallpapers` | 2223 | 壁纸合集（含月历、EP短片、阵营、节日、活动、New Eridan 时尚等） |
+| `cinema` | 698 | 代理档案（意象影画、角色展示、媒体物料） |
+| `goodwill` | 57 | 好感壁纸视频 |
+| `agent_videos` | 55 | 代理人视频（不可售影像 42、代理人档案 13） |
 
 ## OneDrive 共享
 
@@ -42,7 +43,7 @@ https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsM
     丽都放大镜壁纸合集/ ...
     New Eridan 时尚/ ...
     丽都有丽事/ ...
-    六分街街头热话/ ...
+    六分街街头异闻/ ...
     邦布们的说明书/ ...
   代理档案/
     <agent>/
@@ -56,9 +57,11 @@ https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsM
         <tab_name>.png / .gif
       好感壁纸/
         <agent>好感壁纸.mp4
+      不可售影像.mp4
+      代理人档案.mp4
 ```
 
-月历壁纸使用官方分组名（如 `2026PC版壁纸收录`）；文件名使用页面标签。普通壁纸合集保留页面分组结构，`丽都有丽事` 和 `邦布们的说明书` 按 tab 命名自动识别系列子文件夹。代理档案统一归入 `代理档案/<agent>/`，其下按网页模块分为意象影画、角色展示、媒体物料、好感壁纸四个子目录。
+月历壁纸使用官方分组名（如 `2026PC版壁纸收录`）；文件名使用页面标签。普通壁纸合集保留页面分组结构，`丽都有丽事` 和 `邦布们的说明书` 按 tab 命名自动识别系列子文件夹。代理档案统一归入 `代理档案/<agent>/`，其下包含意象影画、角色展示、媒体物料、好感壁纸四个子目录及不可售影像、代理人档案两个视频文件。
 
 ## 命令
 
@@ -71,7 +74,7 @@ python scripts/zzz_resources.py repair --type all --dest "C:\path\to\resources"
 python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
 ```
 
-`--type` 支持：`wallpapers`、`cinema`、`goodwill`、`all`
+`--type` 支持：`wallpapers`、`cinema`、`goodwill`、`agent_videos`、`all`
 
 ## 运行环境
 
@@ -86,6 +89,7 @@ python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\pa
 - `wallpapers_manifest.csv`
 - `cinema_manifest.csv`
 - `goodwill_manifest.csv`
+- `agent_videos_manifest.csv`
 - `last_check_report.csv`
 
 这些文件随项目走，`check-remote` 和 `download`/`repair` 会自动刷新。
@@ -95,6 +99,7 @@ python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\pa
 - 不自动删除用户文件；远端移除或本地多余文件应先报告。
 - 官方 Wiki 页面是前端壳，资源数据应通过 `entry_page` API 读取，不解析可见 HTML。
 - `repair` 只补下载缺失或 0 字节文件。
+- `agent_videos` 需通过米游社 BBS API 获取视频链接，该 API 要求完整浏览器安全头（`Sec-Fetch-*` 等）；若被限流，设置 `export https_proxy="socks5://127.0.0.1:2080"` 后再运行命令。
 
 ## 致谢
 

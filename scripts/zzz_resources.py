@@ -15,10 +15,12 @@ SKILL_DIR = Path(__file__).resolve().parents[1]
 
 BLACKBOARD = "https://act-api-takumi-static.mihoyo.com/common/blackboard/zzz_wiki"
 ENTRY_API = "https://act-api-takumi-static.mihoyo.com/hoyowiki/zzz/wapi/entry_page"
+BBS_API = "https://bbs-api.miyoushe.com/post/wapi/getPostFull"
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
     "X-Rpc-Wiki_app": "zzz",
 }
+QUALITY_ORDER = {"2K": 4, "1080P": 3, "720P": 2, "480P": 1}
 
 
 def _manifest_dir(dest):
@@ -42,7 +44,7 @@ WALLPAPER_COLLECTIONS = [
     ("EP短片壁纸合集", 1599),
     ("New Eridan 时尚", 1990),
     ("丽都有丽事", 1989),
-    ("六分街街头热话", 1988),
+    ("六分街街头异闻", 1988),
     ("邦布们的说明书", 1987),
     ("活动壁纸合集", 1965),
     ("动态壁纸合集", 1127),
@@ -59,7 +61,7 @@ FLATTEN_WALLPAPER_CATEGORIES = {
     "动态壁纸合集",
     "过塑手账壁纸合集",
     "丽都放大镜壁纸合集",
-    "六分街街头热话",
+    "六分街街头异闻",
 }
 NAME_GROUPED_CATEGORIES = {"丽都有丽事", "邦布们的说明书"}
 
@@ -73,15 +75,75 @@ def extract_series_base(tab_name):
     return name, False
 
 
-def request_bytes(url, timeout=60):
-    req = urllib.request.Request(url, headers=HEADERS)
+def request_bytes(url, timeout=60, extra_headers=None):
+    headers = dict(HEADERS)
+    if extra_headers:
+        headers.update(extra_headers)
+    req = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(req, timeout=timeout) as response:
         return response.read(), response.headers
 
 
-def load_json(url, timeout=60):
-    body, _ = request_bytes(url, timeout)
+def load_json(url, timeout=60, extra_headers=None):
+    body, _ = request_bytes(url, timeout, extra_headers=extra_headers)
     return json.loads(body.decode("utf-8"))
+
+
+def fetch_bbs_post(post_id, retries=3):
+    """获取米游社文章完整数据，包含 vod_list 视频列表。
+
+    需要完整的浏览器安全头（Sec-Fetch-*, Sec-Ch-Ua-*），否则返回 403。"""
+    url = f"{BBS_API}?post_id={post_id}"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
+        "Referer": f"https://www.miyoushe.com/zzz/article/{post_id}",
+        "Origin": "https://www.miyoushe.com",
+        "Sec-Ch-Ua": '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+        "Sec-Ch-Ua-Mobile": "?0",
+        "Sec-Ch-Ua-Platform": '"Windows"',
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+    }
+    last_error = None
+    for attempt in range(retries):
+        if attempt > 0:
+            wait = (attempt + 1) * 2  # 递增等待：2s, 4s, 6s
+            print(f"    重试 {attempt + 1}/{retries}（等待 {wait}s）...")
+            time.sleep(wait)
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=30) as response:
+                body = response.read()
+            root = json.loads(body.decode("utf-8"))
+            if root.get("retcode") != 0:
+                last_error = RuntimeError(f"bbs post {post_id} retcode={root.get('retcode')}: {root.get('message')}")
+                continue
+            return root["data"]["post"]
+        except urllib.error.HTTPError as e:
+            last_error = e
+            continue
+        except Exception as e:
+            last_error = e
+            continue
+    raise last_error or RuntimeError(f"bbs post {post_id} failed after {retries} retries")
+
+
+def best_video_url(vod_list):
+    """从 vod_list 中选出最高清晰度的视频 URL，返回 (url, definition)。"""
+    best_url = None
+    best_def = ""
+    best_rank = -1
+    for vod in vod_list if isinstance(vod_list, list) else []:
+        for res in vod.get("resolutions", []):
+            rank = QUALITY_ORDER.get(res.get("definition", ""), 0)
+            if rank > best_rank:
+                best_rank = rank
+                best_url = res.get("url", "")
+                best_def = res.get("definition", "")
+    return best_url, best_def
 
 
 def fetch_entry(entry_id):
@@ -287,13 +349,21 @@ def find_channel(node, channel_id):
     return None
 
 
+# 缓存：避免 check-local --type all 时重复遍历全部代理人页面
+_agent_entries_cache = None
+_canonical_names_cache = None
+
+
 def agent_entries():
+    global _agent_entries_cache
+    if _agent_entries_cache is not None:
+        return _agent_entries_cache
     url = f"{BLACKBOARD}/v1/home/content/list?app_sn=zzz_wiki&channel_id=43&page_num=1&page_size=100"
     data = load_json(url, timeout=30)["data"]
     channel = find_channel({"children": data["list"]}, 43)
     if not channel:
         raise RuntimeError("agent channel 43 not found")
-    return [
+    _agent_entries_cache = [
         {
             "entry_id": int(item["content_id"]),
             "title": item.get("title") or "",
@@ -301,6 +371,7 @@ def agent_entries():
         }
         for item in channel.get("list", [])
     ]
+    return _agent_entries_cache
 
 
 def page_agent_name(page):
@@ -319,13 +390,17 @@ def page_agent_name(page):
 
 
 def canonical_agent_names():
-    """遍历所有特工页面，返回权威名称映射 {entry_id: page_name}。"""
+    """遍历所有特工页面，返回权威名称映射 {entry_id: page_name}。（结果缓存）"""
+    global _canonical_names_cache
+    if _canonical_names_cache is not None:
+        return _canonical_names_cache
     names = {}
     for entry in agent_entries():
         page = fetch_entry(entry["entry_id"])
         name = page_agent_name(page)
         if name:
             names[entry["entry_id"]] = name
+    _canonical_names_cache = names
     return names
 
 
@@ -432,7 +507,12 @@ def build_goodwill():
         raw_norm = _norm(raw)
         if raw_norm in norm_to_canon:
             return norm_to_canon[raw_norm]
-        # 子串匹配：处理"铃动态壁纸"这类 title 中不含"好感壁纸"的特殊条目
+        # 优先前缀匹配（避免"安比"错误匹配到"零号·安比"）
+        for canon_name in canonical_names:
+            canon_norm = _norm(canon_name)
+            if canon_norm.startswith(raw_norm) or raw_norm.startswith(canon_norm):
+                return canon_name
+        # 子串匹配兜底
         for canon_name in canonical_names:
             canon_norm = _norm(canon_name)
             if canon_norm in raw_norm or raw_norm in canon_norm:
@@ -468,12 +548,145 @@ def build_goodwill():
     return add_targets(records)
 
 
+def build_agent_videos():
+    """采集频道73「角色视频」中的「不可售影像」和「代理人档案」视频。
+
+    视频托管于米游社文章，需通过 bbs-api 获取 vod_list 后选取最高清晰度下载。
+    代理人名称与 channel 43 的权威名称做交叉匹配，确保目录名一致。
+    """
+    # 获取频道 73 的条目列表
+    url = f"{BLACKBOARD}/v1/home/content/list?app_sn=zzz_wiki&channel_id=13&page_num=1&page_size=100"
+    data = load_json(url, timeout=30)["data"]
+    ch13 = find_channel({"children": data["list"]}, 13)
+    if not ch13:
+        raise RuntimeError("channel 13 not found")
+    ch73 = find_channel({"children": ch13.get("children", [])}, 73)
+    if not ch73:
+        raise RuntimeError("channel 73 not found")
+
+    # 筛选目标分类
+    TARGET_PREFIXES = ["不可售影像", "代理人档案"]
+    items = []
+    for item in ch73.get("list", []):
+        title = (item.get("title") or "").strip()
+        for prefix in TARGET_PREFIXES:
+            if title.startswith(prefix):
+                items.append((prefix, item))
+                break
+
+    if not items:
+        print("未找到不可售影像或代理人档案条目")
+        return []
+
+    # 构建权威名称映射（复用 build_goodwill 的归一化逻辑）
+    def _norm(s):
+        return re.sub(r"[·「」&！\s•]", "", s)
+
+    page_names = canonical_agent_names()
+    alias_map = {entry["entry_id"]: entry["role"] for entry in agent_entries()}
+    canonical_names = set(page_names.values())
+    for eid, alias in alias_map.items():
+        if eid not in page_names:
+            canonical_names.add(alias)
+
+    norm_to_canon = {}
+    for name in canonical_names:
+        norm_to_canon[_norm(name)] = name
+
+    def resolve_agent(raw_name):
+        """将标题中解析出的代理人名匹配到权威名称。"""
+        raw_norm = _norm(raw_name)
+        if raw_norm in norm_to_canon:
+            return norm_to_canon[raw_norm]
+        # 优先前缀匹配（避免"安比"错误匹配到"零号·安比"）
+        for canon_name in canonical_names:
+            canon_norm = _norm(canon_name)
+            if canon_norm.startswith(raw_norm) or raw_norm.startswith(canon_norm):
+                return canon_name
+        # 子串匹配兜底
+        for canon_name in canonical_names:
+            canon_norm = _norm(canon_name)
+            if canon_norm in raw_norm or raw_norm in canon_norm:
+                return canon_name
+        return raw_name
+
+    records = []
+    for prefix, item in items:
+        entry_id = int(item["content_id"])
+        title = item.get("title") or ""
+
+        # 从标题解析代理人名：去掉前缀和分隔符
+        raw_name = title[len(prefix):].strip()
+        # 去掉前缀分隔符 丨 | 等
+        raw_name = re.sub(r"^[丨|｜\s]+", "", raw_name).strip()
+        # 对于"叶瞬光 • 暖霞拾光"这种情况，取 • 前面的主名称
+        raw_name = re.split(r"[•·]", raw_name)[0].strip()
+        # 去掉书名号式括号
+        raw_name = raw_name.replace("「", "").replace("」", "").strip()
+
+        if not raw_name:
+            continue
+
+        agent = resolve_agent(raw_name)
+        agent_dir = sanitize(agent, str(entry_id))
+        category = prefix  # "不可售影像" 或 "代理人档案"
+
+        print(f"  [{prefix}] {raw_name} → {agent} (entry={entry_id})")
+
+        # 获取条目页 → 提取 post_id
+        try:
+            page = fetch_entry(entry_id)
+        except Exception as exc:
+            print(f"    跳过：entry_page 获取失败 ({exc})")
+            continue
+
+        ext = page.get("ext") or {}
+        post_ext = ext.get("post_ext") or {}
+        post_id = post_ext.get("post_id") or ""
+        if not post_id:
+            print(f"    跳过：无 post_id（page_type={page.get('page_type')}）")
+            continue
+
+        # 获取米游社文章 → 提取视频
+        video_url = ""
+        definition = ""
+        try:
+            post = fetch_bbs_post(post_id)
+            vod_list = post.get("vod_list") or []
+            video_url, definition = best_video_url(vod_list)
+            if video_url:
+                print(f"    → {definition} {video_url[:80]}...")
+            else:
+                print(f"    警告：vod_list 中无视频")
+        except Exception as exc:
+            print(f"    警告：bbs post {post_id} 获取失败 ({exc})，记录已保留待后续修复")
+        finally:
+            # 请求间隔，避免触发速率限制
+            time.sleep(0.6)
+
+        records.append({
+            "resource_type": "agent_videos",
+            "category": category,
+            "group": agent,
+            "entry_id": str(entry_id),
+            "module_id": "",
+            "source_name": title,
+            "url": video_url,
+            "ext": ".mp4",
+            "base": category,
+            "relative_dir": path_join(AGENT_ROOT, agent_dir),
+            "definition": definition,
+        })
+
+    return add_targets(records)
+
+
 def expand_types(type_name):
-    return ["wallpapers", "cinema", "goodwill"] if type_name == "all" else [type_name]
+    return ["wallpapers", "cinema", "goodwill", "agent_videos"] if type_name == "all" else [type_name]
 
 
 def build_records(type_name):
-    builders = {"wallpapers": build_wallpapers, "cinema": build_cinema, "goodwill": build_goodwill}
+    builders = {"wallpapers": build_wallpapers, "cinema": build_cinema, "goodwill": build_goodwill, "agent_videos": build_agent_videos}
     records = []
     for t in expand_types(type_name):
         if t == "wallpapers":
@@ -543,7 +756,16 @@ def download_records(records, dest, only_bad=False):
             skipped += 1
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
-        body, headers = request_bytes(r["url"], timeout=120)
+        # 跳过空 URL（API 获取失败的占位记录，待后续 repair 重试）
+        if not r.get("url"):
+            r["status"] = "pending"
+            skipped += 1
+            continue
+        # 米游社视频 CDN 需要 Referer 头
+        extra = None
+        if "vod-sign.miyoushe.com" in r.get("url", ""):
+            extra = {"Referer": "https://www.miyoushe.com/"}
+        body, headers = request_bytes(r["url"], timeout=120, extra_headers=extra)
         target.write_bytes(body)
         r["bytes"] = len(body)
         r["content_length"] = headers.get("Content-Length") or ""
@@ -663,13 +885,13 @@ def main():
     p.add_argument("--dest", required=True)
     for name in ("download", "repair", "check-local"):
         p = sub.add_parser(name)
-        p.add_argument("--type", choices=["wallpapers", "cinema", "goodwill", "all"], required=True)
+        p.add_argument("--type", choices=["wallpapers", "cinema", "goodwill", "agent_videos", "all"], required=True)
         p.add_argument("--dest", required=True)
     p = sub.add_parser("check-remote")
-    p.add_argument("--type", choices=["wallpapers", "cinema", "goodwill", "all"], required=True)
+    p.add_argument("--type", choices=["wallpapers", "cinema", "goodwill", "agent_videos", "all"], required=True)
     p.add_argument("--dest", required=True)
     p = sub.add_parser("export-manifest")
-    p.add_argument("--type", choices=["wallpapers", "cinema", "goodwill", "all"], required=True)
+    p.add_argument("--type", choices=["wallpapers", "cinema", "goodwill", "agent_videos", "all"], required=True)
     p.add_argument("--manifest-src", required=True)
     p.add_argument("--dest", required=True)
     args = parser.parse_args()
