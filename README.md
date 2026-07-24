@@ -66,12 +66,12 @@ https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsM
 ## 命令
 
 ```powershell
-python scripts/zzz_resources.py list-resources --dest "C:\path\to\resources"
-python scripts/zzz_resources.py check-remote --type all --dest "C:\path\to\resources"
-python scripts/zzz_resources.py check-local --type all --dest "C:\path\to\resources"
-python scripts/zzz_resources.py download --type all --dest "C:\path\to\resources"
-python scripts/zzz_resources.py repair --type all --dest "C:\path\to\resources"
-python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
+.venv\Scripts\python.exe scripts/zzz_resources.py list-resources --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py check-remote --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py check-local --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py download --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py repair --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
 ```
 
 `--type` 支持：`wallpapers`、`cinema`、`goodwill`、`agent_videos`、`all`
@@ -79,7 +79,7 @@ python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\pa
 ## 运行环境
 
 - Python 3，仅标准库，无第三方依赖。
-- `check-remote`、`check-local`、`download`、`repair` 会访问米游社 Wiki 接口。
+- `check-remote`、`download`、`repair` 会访问米游社 Wiki 接口；`check-local` 仅读取本地清单。
 - 所有命令都需指定 `--dest`（项目根目录）。
 
 ## 清单文件
