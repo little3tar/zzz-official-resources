@@ -32,15 +32,15 @@ Do not assume a destination directory. Do not write manifests or CSV files into 
 
 ## CLI
 
-Use the bundled script:
+Use the bundled script (via project venv or `uv run`):
 
 ```powershell
-python scripts/zzz_resources.py list-resources --dest "C:\path\to\resources"
-python scripts/zzz_resources.py check-remote --type all --dest "C:\path\to\resources"
-python scripts/zzz_resources.py check-local --type all --dest "C:\path\to\resources"
-python scripts/zzz_resources.py download --type all --dest "C:\path\to\resources"
-python scripts/zzz_resources.py repair --type all --dest "C:\path\to\resources"
-python scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
+.venv\Scripts\python.exe scripts/zzz_resources.py list-resources --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py check-remote --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py check-local --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py download --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py repair --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
 ```
 
 ## Behavior

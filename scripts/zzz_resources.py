@@ -119,7 +119,10 @@ def fetch_bbs_post(post_id, retries=3):
                 body = response.read()
             root = json.loads(body.decode("utf-8"))
             if root.get("retcode") != 0:
-                last_error = RuntimeError(f"bbs post {post_id} retcode={root.get('retcode')}: {root.get('message')}")
+                retcode = root.get("retcode")
+                if retcode == 1034:
+                    raise RuntimeError(f"bbs post {post_id} retcode=1034: 米游社 API 风控拦截，无法获取视频链接（不影响已有文件）")
+                last_error = RuntimeError(f"bbs post {post_id} retcode={retcode}: {root.get('message')}")
                 continue
             return root["data"]["post"]
         except urllib.error.HTTPError as e:
@@ -662,7 +665,7 @@ def build_agent_videos():
             print(f"    警告：bbs post {post_id} 获取失败 ({exc})，记录已保留待后续修复")
         finally:
             # 请求间隔，避免触发速率限制
-            time.sleep(0.6)
+            time.sleep(2)
 
         records.append({
             "resource_type": "agent_videos",
@@ -833,8 +836,12 @@ def cmd_repair(args):
 
 
 def cmd_check_local(args):
-    records = build_records(args.type)
-    save_by_type(records, args.dest)
+    records = []
+    for t in expand_types(args.type):
+        records.extend(read_manifest(t, args.dest))
+    if not records:
+        print("没有本地清单可检查，请先运行 download 或 check-remote")
+        return
     report = check_local_records(records, args.dest)
     write_report(report, args.dest)
     counts = Counter(row["check_status"] for row in report)
