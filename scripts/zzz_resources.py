@@ -742,6 +742,22 @@ def save_by_type(records, dest):
         write_manifest(t, rows, dest)
 
 
+_WEBP_HEADER = bytes("RIFF", "ascii") + b"\x00" * 8 + bytes("WEBP", "ascii")
+
+
+def _fix_webp_gif(body, target, r):
+    """如果文件体是 WebP 但扩展名是 .gif，修正为 .webp。"""
+    if target.suffix.lower() != ".gif":
+        return target
+    if len(body) < 12 or body[:4] != _WEBP_HEADER[:4] or body[8:12] != _WEBP_HEADER[8:12]:
+        return target
+    new_target = target.with_suffix(".webp")
+    r["filename"] = r["filename"].rsplit(".", 1)[0] + ".webp"
+    r["relative_path"] = r["relative_path"].rsplit(".", 1)[0] + ".webp"
+    r["ext"] = ".webp"
+    return new_target
+
+
 def download_records(records, dest, only_bad=False):
     dest = Path(dest)
     downloaded = skipped = 0
@@ -769,6 +785,8 @@ def download_records(records, dest, only_bad=False):
         if "vod-sign.miyoushe.com" in r.get("url", ""):
             extra = {"Referer": "https://www.miyoushe.com/"}
         body, headers = request_bytes(r["url"], timeout=120, extra_headers=extra)
+        # 修正伪装成 .gif 的 WebP，避免 Windows 照片应用无法打开
+        target = _fix_webp_gif(body, target, r)
         target.write_bytes(body)
         r["bytes"] = len(body)
         r["content_length"] = headers.get("Content-Length") or ""
