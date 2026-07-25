@@ -165,7 +165,11 @@ def sanitize(value, fallback):
 
 
 def ext_from_url(url, fallback=".png"):
-    return Path(urllib.parse.urlparse(url).path).suffix.lower() or fallback
+    ext = Path(urllib.parse.urlparse(url).path).suffix.lower() or fallback
+    # 角色展示模块的 URL 以 .gif 结尾，但服务器实际返回 WebP
+    if ext == ".gif":
+        ext = ".webp"
+    return ext
 
 
 def path_join(*parts):
