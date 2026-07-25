@@ -32,15 +32,15 @@ Do not assume a destination directory. Do not write manifests or CSV files into 
 
 ## CLI
 
-Use the bundled script (via project venv or `uv run`):
+Run the package from the skill root via the project virtual environment:
 
 ```powershell
-.venv\Scripts\python.exe scripts/zzz_resources.py list-resources --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py check-remote --type all --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py check-local --type all --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py download --type all --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py repair --type all --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
+.venv\Scripts\python.exe -m scripts.zzz_resources list-resources --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources check-remote --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources check-local --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources download --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources repair --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
 ```
 
 ## Behavior
@@ -53,6 +53,9 @@ Use the bundled script (via project venv or `uv run`):
   - `last_check_report.csv`
 - `download` refreshes the manifest and writes resources to the confirmed destination.
 - `check-remote` compares the current official site against the existing manifest and writes the check report.
+- Remote comparison separates stable resource identity from revision metadata. Report statuses are `new`, `removed`, `renamed`, `changed`, `resolved`, `unknown`, and `unchanged`.
+- Expiring video authorization parameters do not count as changes. A transient API failure reports `unknown` and preserves the last usable manifest URL instead of overwriting it with an empty value.
+- Before remote comparison, download, or repair, normalize official `.gif` records to an existing local `.webp` file when the CDN payload was previously detected as WebP.
 - `check-local` checks the confirmed destination for missing or zero-byte files.
 - `repair` only downloads missing or zero-byte files.
 - `export-manifest` copies manifests from `--manifest-src` to `--dest` (separate from the project manifests).

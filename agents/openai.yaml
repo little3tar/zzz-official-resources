@@ -1,3 +1,4 @@
-display_name: ZZZ Official Resources
-short_description: Download and maintain official Zenless Zone Zero Wiki resources.
-default_prompt: Check or download official Zenless Zone Zero resources, with manifests kept inside the skill unless I ask to export them.
+interface:
+  display_name: "ZZZ Official Resources"
+  short_description: "Download and maintain official Zenless Zone Zero resources."
+  default_prompt: "Use $zzz-official-resources to check or download official Zenless Zone Zero resources into a destination I choose."

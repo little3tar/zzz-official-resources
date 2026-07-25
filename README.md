@@ -6,12 +6,12 @@
 
 ## 资源范围
 
-当前清单共 `3033` 条资源：
+当前清单共 `3102` 条资源：
 
 | 类型 | 数量 | 说明 |
 | --- | ---: | --- |
-| `wallpapers` | 2223 | 壁纸合集（含月历、EP短片、阵营、节日、活动、New Eridan 时尚等） |
-| `cinema` | 698 | 代理档案（意象影画、角色展示、媒体物料） |
+| `wallpapers` | 2274 | 壁纸合集（含月历、EP短片、阵营、节日、活动、New Eridan 时尚等） |
+| `cinema` | 716 | 代理档案（意象影画、角色展示、媒体物料） |
 | `goodwill` | 57 | 好感壁纸视频 |
 | `agent_videos` | 55 | 代理人视频（不可售影像 42、代理人档案 13） |
 
@@ -66,19 +66,30 @@ https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsM
 ## 命令
 
 ```powershell
-.venv\Scripts\python.exe scripts/zzz_resources.py list-resources --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py check-remote --type all --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py check-local --type all --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py download --type all --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py repair --type all --dest "C:\path\to\resources"
-.venv\Scripts\python.exe scripts/zzz_resources.py export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
+.venv\Scripts\python.exe -m scripts.zzz_resources list-resources --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources check-remote --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources check-local --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources download --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources repair --type all --dest "C:\path\to\resources"
+.venv\Scripts\python.exe -m scripts.zzz_resources export-manifest --type all --manifest-src "C:\path\to\resources" --dest "C:\path\for\csv"
 ```
 
 `--type` 支持：`wallpapers`、`cinema`、`goodwill`、`agent_videos`、`all`
 
 ## 运行环境
 
-- Python 3，仅标准库，无第三方依赖。
+- Python 3.12 或更高版本，仅标准库，无第三方依赖。项目元数据见 `pyproject.toml`。
+- 在技能根目录运行 `.venv\Scripts\python.exe -m scripts.zzz_resources ...`；不要随技能复制或分发 `.venv`。
+
+## 代码结构
+
+- `scripts/zzz_resources/__main__.py`：`python -m scripts.zzz_resources` 模块入口。
+- `scripts/zzz_resources/api.py`：Wiki、米游社和 CDN 请求。
+- `scripts/zzz_resources/records.py`：命名、身份键、版本指纹和远端比较。
+- `scripts/zzz_resources/sources.py`：壁纸及代理人资源解析。
+- `scripts/zzz_resources/storage.py`：清单、报告、下载和本地校验。
+- `scripts/zzz_resources/cli.py`：命令参数与操作编排。
+- `tests/`：不联网的回归测试。
 - `check-remote`、`download`、`repair` 会访问米游社 Wiki 接口；`check-local` 仅读取本地清单。
 - 所有命令都需指定 `--dest`（项目根目录）。
 
@@ -96,6 +107,7 @@ https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsM
 
 ## 注意事项
 
+- `check-remote` 使用稳定身份键匹配逻辑资源，再比较去除临时签名后的 URL、清晰度、长度、ETag、修改时间和哈希等版本信息。同一路径的远端对象发生变化时报告 `changed`；临时链接恢复报告 `resolved`；接口失败报告 `unknown`，并保留上次有效元数据。
 - 不自动删除用户文件；远端移除或本地多余文件应先报告。
 - 官方 Wiki 页面是前端壳，资源数据应通过 `entry_page` API 读取，不解析可见 HTML。
 - `repair` 只补下载缺失或 0 字节文件。

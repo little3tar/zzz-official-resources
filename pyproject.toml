@@ -1,0 +1,9 @@
+[project]
+name = "zzz-official-resources"
+version = "0.6.0"
+description = "Download and verify official Zenless Zone Zero Wiki resources"
+requires-python = ">=3.12"
+dependencies = []
+
+[tool.uv]
+package = false
