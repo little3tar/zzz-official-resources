@@ -165,11 +165,7 @@ def sanitize(value, fallback):
 
 
 def ext_from_url(url, fallback=".png"):
-    ext = Path(urllib.parse.urlparse(url).path).suffix.lower() or fallback
-    # 角色展示模块的 URL 以 .gif 结尾，但服务器实际返回 WebP
-    if ext == ".gif":
-        ext = ".webp"
-    return ext
+    return Path(urllib.parse.urlparse(url).path).suffix.lower() or fallback
 
 
 def path_join(*parts):
@@ -229,13 +225,16 @@ def add_targets(records):
 
 
 def stable_key(r):
+    url = r.get("url", "")
+    # 去掉视频 URL 的时效性签名参数，避免每次 check-remote 误判为新增/移除
+    url_clean = re.sub(r"\?auth_key=.*", "", url)
     return "|".join(
         [
             r.get("resource_type", ""),
             str(r.get("entry_id", "")),
             str(r.get("module_id", "")),
             r.get("source_name", ""),
-            r.get("url", ""),
+            url_clean,
         ]
     )
 
