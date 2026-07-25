@@ -460,6 +460,8 @@ def build_cinema():
                         name = str(item.get("tab_name") or "").strip()
                         if not name:
                             continue
+                        url = item["image"]
+                        ext = ext_from_url(url, ".png")
                         records.append({
                             "resource_type": "cinema",
                             "category": category,
@@ -467,8 +469,8 @@ def build_cinema():
                             "entry_id": str(entry["entry_id"]),
                             "module_id": module_id,
                             "source_name": name,
-                            "url": item["image"],
-                            "ext": ext_from_url(item["image"], ".png"),
+                            "url": url,
+                            "ext": ext,
                             "base": name,
                             "relative_dir": path_join(AGENT_ROOT, role_dir, category),
                         })
@@ -741,6 +743,18 @@ def split_by_type(records):
 
 
 def save_by_type(records, dest):
+    """保存时自动修正清单中与实际磁盘格式不符的扩展名。"""
+    dest = Path(dest)
+    for r in records:
+        target = dest / r["relative_path"]
+        if not target.exists():
+            # 文件名匹配 .gif 但磁盘存在对应 .webp → 修正
+            if r["relative_path"].endswith(".gif"):
+                alt = dest / (r["relative_path"][:-4] + ".webp")
+                if alt.exists():
+                    r["filename"] = r["filename"][:-4] + ".webp"
+                    r["relative_path"] = r["relative_path"][:-4] + ".webp"
+                    r["ext"] = ".webp"
     for t, rows in split_by_type(records).items():
         write_manifest(t, rows, dest)
 
@@ -815,6 +829,14 @@ def check_local_records(records, dest):
         else:
             status = "ok"
             size = target.stat().st_size
+            cl = r.get("content_length", "")
+            if cl:
+                try:
+                    expected = int(cl)
+                    if expected and size != expected:
+                        status = "size_mismatch"
+                except (ValueError, TypeError):
+                    pass
         report.append({**r, "local_path": str(target), "local_size": size, "check_status": status})
     return report
 
