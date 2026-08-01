@@ -6,13 +6,13 @@
 
 ## 资源范围
 
-当前清单共 `3102` 条资源：
+当前清单共 `3112` 条资源：
 
 | 类型 | 数量 | 说明 |
 | --- | ---: | --- |
-| `wallpapers` | 2274 | 壁纸合集（含月历、EP短片、阵营、节日、活动、New Eridan 时尚等） |
-| `cinema` | 716 | 代理档案（意象影画、角色展示、媒体物料） |
-| `goodwill` | 57 | 好感壁纸视频 |
+| `wallpapers` | 2277 | 壁纸合集（含月历、EP短片、阵营、节日、活动、New Eridan 时尚等） |
+| `cinema` | 722 | 代理档案（意象影画、角色展示、媒体物料） |
+| `goodwill` | 58 | 好感壁纸视频 |
 | `agent_videos` | 55 | 代理人视频（不可售影像 42、代理人档案 13） |
 
 ## OneDrive 共享
@@ -21,7 +21,7 @@
 
 https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsMa644?e=pucHMa
 
-共享文件是某次运行结果的快照。若需确认远端是否有新增、移除或改名，建议重新运行 `check-remote` 或 `check-local`。
+共享文件是某次运行结果的快照。若需确认远端是否有新增、移除或改名，建议依次运行 `check-remote` 和 `check-local`（见下）。
 
 ## 下载目录结构
 
@@ -107,6 +107,7 @@ https://1drv.ms/f/c/0e07052ae732baff/IgDo0_7bteV-TK2GRifwPpTrAUM1jdhorYMhCNkgKsM
 
 ## 注意事项
 
+- 判断本地档案是否需要更新或是否完整时，应两步审计：先运行 `check-remote` 对比官方清单，再运行 `check-local` 校验清单中每个文件在磁盘上存在且非零字节。`check-remote` 的 `unchanged` 只表示官方清单与本地清单一致，不代表文件都已下载。两个命令都会写 `<dest>/.manifests/last_check_report.csv`，后者会覆盖前者。
 - `check-remote` 使用稳定身份键匹配逻辑资源，再比较去除临时签名后的 URL、清晰度、长度、ETag、修改时间和哈希等版本信息。同一路径的远端对象发生变化时报告 `changed`；临时链接恢复报告 `resolved`；接口失败报告 `unknown`，并保留上次有效元数据。
 - 不自动删除用户文件；远端移除或本地多余文件应先报告。
 - 官方 Wiki 页面是前端壳，资源数据应通过 `entry_page` API 读取，不解析可见 HTML。

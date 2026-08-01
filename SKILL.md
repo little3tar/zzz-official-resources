@@ -30,6 +30,15 @@ Before running a command that writes user files, ask the user to choose:
 
 Do not assume a destination directory. Do not write manifests or CSV files into the user's destination unless the user explicitly asks to export them.
 
+### Full local update audit
+
+When a user asks whether **local files need updating**, whether the archive is complete, or reports that an official page has files absent locally, treat this as a two-part audit after confirming the resource type and destination:
+
+1. Run `check-remote` to compare the current official resource inventory with the local manifests. This finds new, removed, renamed, or changed official records.
+2. Then run `check-local` to verify that every record in the refreshed manifests exists locally and is non-zero-byte. This finds files that are known to the manifest but were never downloaded, were deleted, or are damaged.
+
+Do not describe `check-remote` alone as proof that the local archive is complete. `unchanged` means only that the official inventory matches the manifest; it does not mean every manifest file is present on disk. Report the remote-comparison result and the local-integrity result separately. Both commands write `<dest>/.manifests/last_check_report.csv`, so the second (`check-local`) report replaces the first; preserve the first command's terminal summary in the user-facing result rather than exporting an extra report unless the user asks.
+
 ## CLI
 
 Run the package from the skill root via the project virtual environment:
@@ -53,6 +62,7 @@ Run the package from the skill root via the project virtual environment:
   - `last_check_report.csv`
 - `download` refreshes the manifest and writes resources to the confirmed destination.
 - `check-remote` compares the current official site against the existing manifest and writes the check report.
+- `check-remote` does **not** test whether the corresponding local files exist; follow it with `check-local` for a complete local update audit.
 - Remote comparison separates stable resource identity from revision metadata. Report statuses are `new`, `removed`, `renamed`, `changed`, `resolved`, `unknown`, and `unchanged`.
 - Expiring video authorization parameters do not count as changes. A transient API failure reports `unknown` and preserves the last usable manifest URL instead of overwriting it with an empty value.
 - Before remote comparison, download, or repair, normalize official `.gif` records to an existing local `.webp` file when the CDN payload was previously detected as WebP.
