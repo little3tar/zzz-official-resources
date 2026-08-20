@@ -39,6 +39,18 @@ When a user asks whether **local files need updating**, whether the archive is c
 
 Do not describe `check-remote` alone as proof that the local archive is complete. `unchanged` means only that the official inventory matches the manifest; it does not mean every manifest file is present on disk. Report the remote-comparison result and the local-integrity result separately. Both commands write `<dest>/.manifests/last_check_report.csv`, so the second (`check-local`) report replaces the first; preserve the first command's terminal summary in the user-facing result rather than exporting an extra report unless the user asks.
 
+### Proactive missing-file handling
+
+When an audit finds missing or zero-byte local files:
+
+1. Report the total count and group the results by resource type and agent/collection when practical.
+2. List a short sample of missing paths (for large result sets, show at most 10 representative files) and point to `last_check_report.csv` for the complete list.
+3. Ask the user whether to download the missing files; do not run `download` or `repair` before the user confirms.
+4. If the user confirms, confirm the resource type and destination from the audit context, then run `repair` for missing/zero-byte files. Use `download` when the user explicitly requests a full refresh.
+5. After downloading, run `check-local` again and report the final missing/ok counts.
+
+If no files are missing or zero-byte, state that the local integrity check is complete and do not ask about a download.
+
 ## CLI
 
 Run the package from the skill root via the project virtual environment:
